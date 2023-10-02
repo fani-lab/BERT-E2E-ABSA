@@ -3,12 +3,27 @@ import os
 import torch
 import numpy as np
 
-from glue_utils import convert_examples_to_seq_features, compute_metrics_absa, ABSAProcessor
+from bert_e2e_absa.glue_utils import convert_examples_to_seq_features, ABSAProcessor
 from tqdm import tqdm
-from transformers import BertConfig, BertTokenizer, XLNetConfig, XLNetTokenizer, WEIGHTS_NAME
-from absa_layer import BertABSATagger
+from transformers import BertConfig, BertTokenizer, WEIGHTS_NAME
+from bert_e2e_absa.absa_layer import BertABSATagger
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
-from seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
+from bert_e2e_absa.seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
+from typing import Tuple, List, TypedDict
+
+
+# --------------------------------------------------------------------------------------
+# Typings
+# --------------------------------------------------------------------------------------
+
+Predict_Tuple = Tuple[str, float]
+class Predict_Result(TypedDict):
+    unique_predictions: List[List[Predict_Tuple]]
+    gold_targets: List[str]
+
+# --------------------------------------------------------------------------------------
+# Core
+# --------------------------------------------------------------------------------------
 
 #ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig)), ())
 ALL_MODELS = (
@@ -103,9 +118,8 @@ def init_args():
     return args
 
 
-def main():
+def main(args: argparse.Namespace):
     # perform evaluation on single GPU
-    args = init_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
     if torch.cuda.is_available():
@@ -121,18 +135,40 @@ def main():
     tokenizer = tokenizer_class.from_pretrained(args.absa_home)
     model.to(args.device)
     model.eval()
-    predict(args, model, tokenizer)
+
+    return predict(args, model, tokenizer)
 
 
-def predict(args, model, tokenizer):
+def get_unique_prediction_results(words_list: list, target_list: list) -> List[Predict_Tuple]:
+    predictions_result = [[(words_list[i][j], score) for j, score in sublist] for i, sublist in enumerate(target_list)]
+
+    unique_predictions_result: List[List[Predict_Tuple]] = []
+
+    for sublist in predictions_result:
+        seen_words = {}
+        new_sublist = []
+        for word, score in sublist:
+            if word not in seen_words or score > seen_words[word]:
+                seen_words[word] = score
+                new_sublist.append((word, score))
+        unique_predictions_result.append(new_sublist)
+    return unique_predictions_result
+    
+
+def predict(args, model, tokenizer) -> Predict_Result:
     dataset, evaluate_label_ids, total_words = load_and_cache_examples(args, args.task_name, tokenizer)
     sampler = SequentialSampler(dataset)
     # process the incoming data one by one
     dataloader = DataLoader(dataset, sampler=sampler, batch_size=1)
     print("***** Running prediction *****")
+ 
+    target_list: List[str] = []
+    words_list: List[str] = []
+    gold_target_list: List[str] = []
 
     total_preds, gold_labels = None, None
     idx = 0
+
     if args.tagging_schema == 'BIEOS':
         absa_label_vocab = {'O': 0, 'EQ': 1, 'B-POS': 2, 'I-POS': 3, 'E-POS': 4, 'S-POS': 5,
                         'B-NEG': 6, 'I-NEG': 7, 'E-NEG': 8, 'S-NEG': 9,
@@ -143,14 +179,19 @@ def predict(args, model, tokenizer):
     elif args.tagging_schema == 'OT':
         absa_label_vocab = {'O': 0, 'EQ': 1, 'T-POS': 2, 'T-NEG': 3, 'T-NEU': 4}
     else:
-        raise Exception("Invalid tagging schema %s..." % args.tagging_schema)
+        raise Exception(f"Invalid tagging schema {args.tagging_schema}...")
+
     absa_id2tag = {}
-    for k in absa_label_vocab:
-        v = absa_label_vocab[k]
-        absa_id2tag[v] = k
+
+    for [key, _] in absa_label_vocab.items():
+        v = absa_label_vocab[key]
+        absa_id2tag[v] = key
 
     for batch in tqdm(dataloader, desc="Evaluating"):
+        probs = []
+
         batch = tuple(t.to(args.device) for t in batch)
+
         with torch.no_grad():
             inputs = {'input_ids': batch[0],
                       'attention_mask': batch[1],
@@ -161,15 +202,29 @@ def predict(args, model, tokenizer):
             # logits: (1, seq_len, label_size)
             logits = outputs[1]
             # preds: (1, seq_len)
+
             if model.tagger_config.absa_type != 'crf':
+                probs = logits.detach().cpu().numpy()
                 preds = np.argmax(logits.detach().cpu().numpy(), axis=-1)
             else:
                 mask = batch[1]
                 preds = model.tagger.viterbi_tags(logits=logits, mask=mask)
+
             label_indices = evaluate_label_ids[idx]
             words = total_words[idx]
             pred_labels = preds[0][label_indices]
+
             assert len(words) == len(pred_labels)
+
+            max_values = np.max(np.array(probs[0])[1:len(words), 2:], axis=1)
+
+            tuple_list = [(index, value) for index, value in enumerate(max_values)]
+
+            result = sorted(tuple_list, key=lambda x: x[1], reverse=True)
+
+            target_list.append(result)
+            words_list.append(words)
+
             pred_tags = [absa_id2tag[label] for label in pred_labels]
 
             if args.tagging_schema == 'OT':
@@ -179,22 +234,44 @@ def predict(args, model, tokenizer):
             else:
                 # current tagging schema is BIEOS, do nothing
                 pass
+
             p_ts_sequence = tag2ts(ts_tag_sequence=pred_tags)
             output_ts = []
+
             for t in p_ts_sequence:
                 beg, end, sentiment = t
                 aspect = words[beg:end+1]
                 output_ts.append('%s: %s' % (aspect, sentiment))
+
             print("Input: %s, output: %s" % (' '.join(words), '\t'.join(output_ts)))
+
+            gold_labels_per_seq: List[str] = []
+
             if inputs['labels'] is not None:
                 # for the unseen data, there is no ``labels''
+                labels = inputs['labels'].detach().cpu().numpy()
+
+                for i, a in enumerate(labels.tolist()[0]):
+                    if a > 1 and 0 < i < len(words):
+                        gold_labels_per_seq.append(words[i - 1])
+
                 if gold_labels is None:
-                    gold_labels = inputs['labels'].detach().cpu().numpy()
+                    gold_labels = labels
                 else:
-                    gold_labels = np.append(gold_labels, inputs['labels'].detach().cpu().numpy(), axis=0)
+                    gold_labels = np.append(gold_labels, labels, axis=0)
+
+                gold_target_list.append(gold_labels_per_seq)
+
         idx += 1
 
+    unique_predictions = get_unique_prediction_results(words_list=words_list, target_list=target_list)
+
+    return Predict_Result(
+        gold_targets=gold_target_list,
+        unique_predictions=unique_predictions
+        )
 
 if __name__ == "__main__":
-    main()
+    args = init_args()
+    main(args)
 

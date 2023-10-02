@@ -5,11 +5,24 @@ import logging
 import random
 import numpy as np
 
-from glue_utils import convert_examples_to_seq_features, output_modes, processors, compute_metrics_absa
+from bert_e2e_absa.glue_utils import (convert_examples_to_seq_features,
+                                      output_modes,
+                                      processors,
+                                      compute_metrics_absa)
+
 from tqdm import tqdm, trange
-from transformers import BertConfig, BertTokenizer, XLNetConfig, XLNetTokenizer, WEIGHTS_NAME
-from transformers import AdamW, get_linear_schedule_with_warmup
-from absa_layer import BertABSATagger, XLNetABSATagger
+from transformers import (BertConfig,
+                          BertTokenizer,
+                          XLNetConfig,
+                          XLNetTokenizer,
+                          WEIGHTS_NAME,
+                          PretrainedConfig,
+                          PreTrainedModel,
+                          PreTrainedTokenizer,
+                          AdamW,
+                          get_linear_schedule_with_warmup
+                          )
+from bert_e2e_absa.absa_layer import BertABSATagger, XLNetABSATagger
 
 from torch.utils.data import DataLoader, TensorDataset, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
@@ -18,6 +31,7 @@ from tensorboardX import SummaryWriter
 
 import glob
 import json
+from typing import Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +57,9 @@ ALL_MODELS = (
 )
 
 
-MODEL_CLASSES = {
+Model_Class = Dict[str,Tuple[PretrainedConfig, PreTrainedModel, PreTrainedTokenizer]]
+ 
+MODEL_CLASSES: Model_Class = {
     'bert': (BertConfig, BertABSATagger, BertTokenizer),
     'xlnet': (XLNetConfig, XLNetABSATagger, XLNetTokenizer)
 }
@@ -374,9 +390,8 @@ def load_and_cache_examples(args, task, tokenizer, mode='train'):
     return dataset, all_evaluate_label_ids
 
 
-def main():
+def main(args: argparse.Namespace) -> PreTrainedModel:
 
-    args = init_args()
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
 
@@ -537,9 +552,12 @@ def main():
     log_file.write('******************************************\n')
     log_file.close()
 
+    return model
+
 
 if __name__ == '__main__':
-    main()
+    args = init_args()
+    main(args)
 
 
 
