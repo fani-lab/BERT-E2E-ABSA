@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-TASK_NAME=rest_total
+TASK_NAME=rest14
 ABSA_TYPE=tfm
 CUDA_VISIBLE_DEVICES=0,2,3 python main.py --model_type bert \
                          --absa_type ${ABSA_TYPE} \
