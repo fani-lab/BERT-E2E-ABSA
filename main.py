@@ -374,9 +374,8 @@ def load_and_cache_examples(args, task, tokenizer, mode='train'):
     return dataset, all_evaluate_label_ids
 
 
-def main():
+def main(args: argparse.Namespace):
 
-    args = init_args()
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train and not args.overwrite_output_dir:
         raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
 
@@ -539,7 +538,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    args = init_args()
+    main(args)
 
 
 
