@@ -121,10 +121,10 @@ def main(args: argparse.Namespace):
     model.to(args.device)
     model.eval()
 
-    predict_result = predict(args, model, tokenizer)
+    return predict(args, model, tokenizer)
 
-    unique_predictions = predict_result["unique_predictions"]
-    gold_targets = predict_result["gold_targets"]
+    # unique_predictions = predict_result["unique_predictions"]
+    # gold_targets = predict_result["gold_targets"]
 
 def get_unique_prediction_results(words_list: list, target_list: list):
     predictions_result = [[(words_list[i][j], score) for j, score in sublist] for i, sublist in enumerate(target_list)]
@@ -169,7 +169,7 @@ def predict(args, model, tokenizer):
 
     absa_id2tag = {}
 
-    for [key] in absa_label_vocab.items():
+    for [key, _] in absa_label_vocab.items():
         v = absa_label_vocab[key]
         absa_id2tag[v] = key
 
