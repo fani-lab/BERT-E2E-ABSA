@@ -9,7 +9,7 @@ authors = [
     "Lam, Wai <wlam@se.cuhk.edu.hk>",
 ]
 
-packages = [{ include = "bert_e2e_absa" }]
+packages = [{ include = "src" }]
 
 [tool.poetry.dependencies]
 python = "~3.8"
@@ -22,6 +22,9 @@ scipy = "==1.10.1"
 pandas = "^1.4.4"
 torch = ">=2.0.0, !=2.0.1"
 protobuf = "==3.20"
+
+[tool.poetry.group.dev.dependencies]
+poethepoet = "^0.24.1"
 
 [tool.poe.tasks]
 train = "sh ./train.sh"
