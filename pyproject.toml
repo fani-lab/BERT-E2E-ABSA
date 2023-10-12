@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "BERT_E2E_ABSA"
+name = "bert-e2e-absa"
 version = "0.1.0"
 description = "Exploiting BERT End-to-End Aspect-Based Sentiment Analysis"
 authors = [
@@ -8,6 +8,7 @@ authors = [
     "Zhang, Wenxuan <wxzhang@se.cuhk.edu.hk>",
     "Lam, Wai <wlam@se.cuhk.edu.hk>",
 ]
+packages = [{ include = "bert-e2e-absa" }]
 
 [tool.poetry.dependencies]
 python = "~3.8"
