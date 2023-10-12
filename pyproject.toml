@@ -8,7 +8,8 @@ authors = [
     "Zhang, Wenxuan <wxzhang@se.cuhk.edu.hk>",
     "Lam, Wai <wlam@se.cuhk.edu.hk>",
 ]
-packages = [{ include = "bert-e2e-absa" }]
+
+packages = [{ include = "bert_e2e_absa" }]
 
 [tool.poetry.dependencies]
 python = "~3.8"
