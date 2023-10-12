@@ -256,11 +256,10 @@ def predict(args, model, tokenizer) -> Predict_Result:
 
     unique_predictions = get_unique_prediction_results(words_list=words_list, target_list=target_list)
 
-    return {
-        'unique_predictions': unique_predictions,
-        'gold_targets': gold_target_list
-        }
-
+    return Predict_Result(
+        gold_targets=gold_target_list,
+        unique_predictions=unique_predictions
+        )
 
 if __name__ == "__main__":
     args = init_args()
