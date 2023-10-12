@@ -9,6 +9,7 @@ from transformers import BertConfig, BertTokenizer, XLNetConfig, XLNetTokenizer,
 from bert_e2e_absa.absa_layer import BertABSATagger
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from bert_e2e_absa.seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
+from typing import Tuple, List
 
 #ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig)), ())
 ALL_MODELS = (
@@ -129,7 +130,8 @@ def main(args: argparse.Namespace):
 def get_unique_prediction_results(words_list: list, target_list: list):
     predictions_result = [[(words_list[i][j], score) for j, score in sublist] for i, sublist in enumerate(target_list)]
 
-    unique_predictions_result = []
+    unique_predictions_result: List[Tuple[str, float]] = []
+
     for sublist in predictions_result:
         seen_words = {}
         new_sublist = []
@@ -148,9 +150,9 @@ def predict(args, model, tokenizer):
     dataloader = DataLoader(dataset, sampler=sampler, batch_size=1)
     print("***** Running prediction *****")
  
-    target_list = []
-    words_list = []
-    gold_target_list = []
+    target_list: List[str] = []
+    words_list: List[str] = []
+    gold_target_list: List[str] = []
 
     total_preds, gold_labels = None, None
     idx = 0
@@ -230,7 +232,8 @@ def predict(args, model, tokenizer):
                 output_ts.append('%s: %s' % (aspect, sentiment))
 
             print("Input: %s, output: %s" % (' '.join(words), '\t'.join(output_ts)))
-            gold_labels_per_seq = []
+
+            gold_labels_per_seq: List[str] = []
 
             if inputs['labels'] is not None:
                 # for the unseen data, there is no ``labels''

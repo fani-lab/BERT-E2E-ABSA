@@ -536,6 +536,8 @@ def main(args: argparse.Namespace):
     log_file.write('******************************************\n')
     log_file.close()
 
+    return model
+
 
 if __name__ == '__main__':
     args = init_args()
