@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import BertModel, XLNetModel
 from bert_e2e_absa.seq_utils import *
-from bert import BertPreTrainedModel, XLNetPreTrainedModel
+from bert_e2e_absa.bert import BertPreTrainedModel, XLNetPreTrainedModel
 from torch.nn import CrossEntropyLoss
 
 
