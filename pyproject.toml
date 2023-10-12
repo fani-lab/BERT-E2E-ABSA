@@ -9,7 +9,7 @@ authors = [
     "Lam, Wai <wlam@se.cuhk.edu.hk>",
 ]
 
-packages = [{ include = "src" }]
+packages = [{ include = "bert_e2e_absa" }]
 
 [tool.poetry.dependencies]
 python = "~3.8"
