@@ -9,7 +9,7 @@ from transformers import BertConfig, BertTokenizer, XLNetConfig, XLNetTokenizer,
 from bert_e2e_absa.absa_layer import BertABSATagger
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from bert_e2e_absa.seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
-from typing import Tuple, List
+from typing import Tuple, List, Dict, TypedDict
 
 #ALL_MODELS = sum((tuple(conf.pretrained_config_archive_map.keys()) for conf in (BertConfig, XLNetConfig)), ())
 ALL_MODELS = (
@@ -124,10 +124,9 @@ def main(args: argparse.Namespace):
 
     return predict(args, model, tokenizer)
 
-    # unique_predictions = predict_result["unique_predictions"]
-    # gold_targets = predict_result["gold_targets"]
+Predict_Tuple = Tuple[str, float]
 
-def get_unique_prediction_results(words_list: list, target_list: list):
+def get_unique_prediction_results(words_list: list, target_list: list) -> List[Predict_Tuple]:
     predictions_result = [[(words_list[i][j], score) for j, score in sublist] for i, sublist in enumerate(target_list)]
 
     unique_predictions_result: List[Tuple[str, float]] = []
@@ -142,8 +141,11 @@ def get_unique_prediction_results(words_list: list, target_list: list):
         unique_predictions_result.append(new_sublist)
     return unique_predictions_result
     
+class Predict_Result(TypedDict):
+    unique_predictions: List[Predict_Tuple]
+    gold_targets: List[str]
 
-def predict(args, model, tokenizer):
+def predict(args, model, tokenizer) -> Predict_Result:
     dataset, evaluate_label_ids, total_words = load_and_cache_examples(args, args.task_name, tokenizer)
     sampler = SequentialSampler(dataset)
     # process the incoming data one by one
