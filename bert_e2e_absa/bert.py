@@ -21,7 +21,7 @@ from transformers import BERT_PRETRAINED_CONFIG_ARCHIVE_MAP
 from transformers import XLNET_PRETRAINED_CONFIG_ARCHIVE_MAP
 from transformers.models.bert.modeling_bert import BertEncoder, BertEmbeddings, BertPooler
 import torch.nn as nn
-from .bert_utils import *
+from bert_utils import *
 
 
 BERT_PRETRAINED_MODEL_ARCHIVE_MAP = {
