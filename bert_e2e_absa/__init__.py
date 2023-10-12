@@ -1,7 +1,7 @@
-import main
-import glue_utils
-import work
-import bert
-import bert_utils
-import absa_layer
-import seq_utils
+from .main import *
+from .glue_utils import *
+from .work import *
+from .bert import *
+from .bert_utils import *
+from .absa_layer import *
+from .seq_utils import *
