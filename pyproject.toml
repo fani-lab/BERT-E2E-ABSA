@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "bert-e2e-absa"
+name = "bert_e2e_absa"
 version = "0.1.0"
 description = "Exploiting BERT End-to-End Aspect-Based Sentiment Analysis"
 authors = [
