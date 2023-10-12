@@ -23,7 +23,7 @@ import os
 import sys
 from io import open
 
-from seq_utils import *
+from bert_e2e_absa.seq_utils import *
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,8 @@
 TASK_NAME=rest14
 ABSA_TYPE=tfm
 CUDA_VISIBLE_DEVICES=0,2,3 
-python ./main.py --model_type bert \
+export PYTHONPATH=./:$PYTHONPATH
+python ./bert_e2e_absa/main.py --model_type bert \
                 --absa_type ${ABSA_TYPE} \
                 --tfm_mode finetune \
                 --fix_tfm 0 \
