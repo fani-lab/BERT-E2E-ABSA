@@ -521,6 +521,7 @@ processors = {
     "rest14": ABSAProcessor,
     "rest15": ABSAProcessor,
     "rest16": ABSAProcessor,
+    'lady': ABSAProcessor
 }
 
 output_modes = {
@@ -540,4 +541,5 @@ output_modes = {
     "rest15": "classification",
     "rest16": "classification",
     "rest_total_revised": "classification",
+    'lady': 'classification'
 }
