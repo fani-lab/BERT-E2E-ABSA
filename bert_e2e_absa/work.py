@@ -3,13 +3,13 @@ import os
 import torch
 import numpy as np
 
-from bert_e2e_absa.glue_utils import convert_examples_to_seq_features, compute_metrics_absa, ABSAProcessor
+from bert_e2e_absa.glue_utils import convert_examples_to_seq_features, ABSAProcessor
 from tqdm import tqdm
-from transformers import BertConfig, BertTokenizer, XLNetConfig, XLNetTokenizer, WEIGHTS_NAME
+from transformers import BertConfig, BertTokenizer, WEIGHTS_NAME
 from bert_e2e_absa.absa_layer import BertABSATagger
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from bert_e2e_absa.seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
-from typing import Tuple, List, Dict, TypedDict
+from typing import Tuple, List, TypedDict
 
 
 # --------------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ from typing import Tuple, List, Dict, TypedDict
 
 Predict_Tuple = Tuple[str, float]
 class Predict_Result(TypedDict):
-    unique_predictions: List[Predict_Tuple]
+    unique_predictions: List[List[Predict_Tuple]]
     gold_targets: List[str]
 
 # --------------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ def main(args: argparse.Namespace):
 def get_unique_prediction_results(words_list: list, target_list: list) -> List[Predict_Tuple]:
     predictions_result = [[(words_list[i][j], score) for j, score in sublist] for i, sublist in enumerate(target_list)]
 
-    unique_predictions_result: List[Predict_Tuple] = []
+    unique_predictions_result: List[List[Predict_Tuple]] = []
 
     for sublist in predictions_result:
         seen_words = {}
