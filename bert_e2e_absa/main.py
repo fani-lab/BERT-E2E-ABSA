@@ -75,6 +75,7 @@ def set_seed(args):
 
 def init_args():
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--data_dir", default=None, type=str, required=True,
                         help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
     parser.add_argument("--model_type", default=None, type=str, required=True,
@@ -105,6 +106,9 @@ def init_args():
                         help="Whether to run training.")
     parser.add_argument("--do_eval", action='store_true',
                         help="Whether to run eval on the dev set.")
+    parser.add_argument("--eval_on_testset_after_training", action='store_true', required=False)
+    parser.add_argument('--no_eval_on_testset_after_training', dest='eval_on_testset_after_training', action='store_false')
+    parser.set_defaults(eval_on_testset_after_training=True)
     parser.add_argument("--evaluate_during_training", action='store_true',
                         help="Rul evaluation during training at each logging step.")
     parser.add_argument("--do_lower_case", action='store_true',
@@ -503,9 +507,10 @@ def main(args: argparse.Namespace) -> PreTrainedModel:
         dev_result = dict((k + '_{}'.format(global_step), v) for k, v in dev_result.items())
         results.update(dev_result)
 
-        test_result = evaluate(args, model, tokenizer, mode='test', prefix=global_step)
-        test_result = dict((k + '_{}'.format(global_step), v) for k, v in test_result.items())
-        test_results.update(test_result)
+        if args.eval_on_testset_after_training:
+            test_result = evaluate(args, model, tokenizer, mode='test', prefix=global_step)
+            test_result = dict((k + '_{}'.format(global_step), v) for k, v in test_result.items())
+            test_results.update(test_result)
 
     best_ckpt_string = "\nThe best checkpoint is %s" % best_checkpoint
     logger.info(best_ckpt_string)
@@ -516,13 +521,15 @@ def main(args: argparse.Namespace) -> PreTrainedModel:
             dev_f1_values.append((k, v))
         if 'eval_loss' in k:
             dev_loss_values.append((k, v))
+
     test_f1_values, test_loss_values = [], []
-    for k in test_results:
-        v = test_results[k]
-        if 'micro-f1' in k:
-            test_f1_values.append((k, v))
-        if 'eval_loss' in k:
-            test_loss_values.append((k, v))
+    if args.eval_on_testset_after_training:
+        for k in test_results:
+            v = test_results[k]
+            if 'micro-f1' in k:
+                test_f1_values.append((k, v))
+            if 'eval_loss' in k:
+                test_loss_values.append((k, v))
     log_file_path = '%s/log.txt' % args.output_dir
     log_file = open(log_file_path, 'a')
     log_file.write("\tValidation:\n")
@@ -542,12 +549,14 @@ def main(args: argparse.Namespace) -> PreTrainedModel:
     for i in range(1, n_times):
         step = i * 100
         log_file.write('\tStep %s:\n' % step)
-        precision = test_results['precision_%s' % step]
-        recall = test_results['recall_%s' % step]
-        micro_f1 = test_results['micro-f1_%s' % step]
-        macro_f1 = test_results['macro-f1_%s' % step]
-        log_file.write('\t\tprecision: %.4lf, recall: %.4lf, micro-f1: %.4lf, macro-f1: %.4lf\n'
-                       % (precision, recall, micro_f1, macro_f1))
+
+        if args.eval_on_testset_after_training:
+            precision = test_results['precision_%s' % step]
+            recall = test_results['recall_%s' % step]
+            micro_f1 = test_results['micro-f1_%s' % step]
+            macro_f1 = test_results['macro-f1_%s' % step]
+            log_file.write('\t\tprecision: %.4lf, recall: %.4lf, micro-f1: %.4lf, macro-f1: %.4lf\n'
+                        % (precision, recall, micro_f1, macro_f1))
     log_file.write("\tBest checkpoint: %s\n" % best_checkpoint)
     log_file.write('******************************************\n')
     log_file.close()
