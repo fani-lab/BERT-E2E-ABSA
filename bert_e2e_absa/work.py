@@ -2,6 +2,7 @@ import argparse
 import os
 import torch
 import numpy as np
+from typing import Tuple, List, TypedDict
 
 from bert_e2e_absa.glue_utils import convert_examples_to_seq_features, ABSAProcessor
 from tqdm import tqdm
@@ -9,7 +10,6 @@ from transformers import BertConfig, BertTokenizer, WEIGHTS_NAME
 from bert_e2e_absa.absa_layer import BertABSATagger
 from torch.utils.data import DataLoader, TensorDataset, SequentialSampler
 from bert_e2e_absa.seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
-from typing import Tuple, List, TypedDict
 
 
 # --------------------------------------------------------------------------------------
@@ -17,9 +17,13 @@ from typing import Tuple, List, TypedDict
 # --------------------------------------------------------------------------------------
 
 Predict_Tuple = Tuple[str, float]
+
+Aspect_With_Sentiment = TypedDict('Aspect_With_Sentiment', {'aspect': str, 'indices': Tuple[int, int], 'sentiment': str})
+
 class Predict_Result(TypedDict):
     unique_predictions: List[List[Predict_Tuple]]
-    gold_targets: List[str]
+    gold_targets: List[List[str]]
+    aspects: List[Aspect_With_Sentiment]
 
 # --------------------------------------------------------------------------------------
 # Core
@@ -164,7 +168,8 @@ def predict(args, model, tokenizer) -> Predict_Result:
  
     target_list: List[str] = []
     words_list: List[str] = []
-    gold_target_list: List[str] = []
+    gold_target_list: List[List[str]] = []
+    sentiment_output: List[Aspect_With_Sentiment] = []
 
     total_preds, gold_labels = None, None
     idx = 0
@@ -241,6 +246,7 @@ def predict(args, model, tokenizer) -> Predict_Result:
             for t in p_ts_sequence:
                 beg, end, sentiment = t
                 aspect = words[beg:end+1]
+                sentiment_output.append(Aspect_With_Sentiment(aspect=aspect[0], indices=(beg, end), sentiment=sentiment))
                 output_ts.append('%s: %s' % (aspect, sentiment))
 
             print("Input: %s, output: %s" % (' '.join(words), '\t'.join(output_ts)))
@@ -268,8 +274,9 @@ def predict(args, model, tokenizer) -> Predict_Result:
 
     return Predict_Result(
         gold_targets=gold_target_list,
-        unique_predictions=unique_predictions
-        )
+        unique_predictions=unique_predictions,
+        aspects=sentiment_output
+    )
 
 if __name__ == "__main__":
     args = init_args()
