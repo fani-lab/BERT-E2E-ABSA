@@ -2,7 +2,8 @@ import argparse
 import os
 import torch
 import numpy as np
-from typing import Tuple, List, TypedDict
+from typing import Tuple, List
+from dataclasses import dataclass
 
 from bert_e2e_absa.glue_utils import convert_examples_to_seq_features, ABSAProcessor
 from tqdm import tqdm
@@ -18,9 +19,14 @@ from bert_e2e_absa.seq_utils import ot2bieos_ts, bio2ot_ts, tag2ts
 
 Predict_Tuple = Tuple[str, float]
 
-Aspect_With_Sentiment = TypedDict('Aspect_With_Sentiment', {'aspect': str, 'indices': Tuple[int, int], 'sentiment': str})
+@dataclass(frozen=True)
+class Aspect_With_Sentiment:
+    aspect: str
+    indices: Tuple[int, int]
+    sentiment: str
 
-class Predict_Result(TypedDict):
+@dataclass(frozen=True)
+class Predict_Result:
     unique_predictions: List[List[Predict_Tuple]]
     gold_targets: List[List[str]]
     aspects: List[Aspect_With_Sentiment]
